@@ -109,6 +109,48 @@ class Client {
         return $response;
     }
 
+    /**
+     * Send a POST request to a URL 
+     * @param  [type] $resource     [description]
+     * @param  [type] $payload      [description]
+     * @param  string $content_type [description]
+     * @return [type]               [description]
+     */
+    public function post($resource, $payload, $content_type = 'multipart/form-data') {
+
+        // TODO: Refactor so we're not copy/pasting code from _request 
+        $ch = $this->getCurl(); 
+        curl_setopt_array($ch, array(CURLOPT_URL => $this->domain . $resource . '?oauth2_access_token=' . $this->getAccessToken())); 
+        curl_setopt($ch, CURLOPT_POST, true); 
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-type: $content_type")); 
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload); 
+
+
+
+        // LOOK AT THIS COPY/PASTED GARBAGE
+        $body = curl_exec($ch);
+
+        $errno = curl_errno($ch);
+        if ($errno !== 0) {
+            throw new Exception(sprintf("Error connecting to LinkedIn: [%s] %s", $errno, curl_error($ch)), $errno);
+        }
+
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($code >= 400) {
+            throw new Exception(trim(strip_tags($body)), $code);
+        }
+
+        $response = json_decode($body, true);
+
+        if (isset($response['error'])) {
+            throw new Exception(sprintf("%s: %s", $response['error'], $response['error_description']), $code);
+        }
+
+        return $response;
+
+    }
+
 
     /**
      * @param string $url full url
